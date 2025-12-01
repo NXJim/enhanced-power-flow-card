@@ -1,0 +1,26 @@
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (if you add build tools later)
+node_modules/
+
+# Backup files
+*.backup
+*.bak
+*-UPDATED.js
+*-v*.js
+*.min.js
+
+# Text files (development notes)
+*.txt
+
+# Logs
+*.log
