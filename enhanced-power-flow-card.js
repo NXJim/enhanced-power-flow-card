@@ -110,18 +110,13 @@ class EnhancedPowerFlowCardEditor extends HTMLElement {
           user-select: none;
         }
         details summary::-webkit-details-marker { display: none; }
-        details summary::before {
-          content: '▶ ';
-          display: inline-block;
-          transition: transform 0.2s;
-        }
-        details[open] summary::before {
-          transform: rotate(90deg);
-        }
         details .details-content { padding: 8px 0; }
         ha-textfield, ha-select, ha-selector { width: 100%; display: block; min-height: 56px; }
         ha-formfield { display: flex; align-items: center; min-height: 48px; }
         .row { display:flex; align-items:center; gap:12px; }
+        .no-link {
+          pointer-events: none;
+        }
       </style>
       <div class="editor">
         <div class="section">
@@ -203,12 +198,37 @@ class EnhancedPowerFlowCardEditor extends HTMLElement {
       [
         `<ha-textfield label="Name" value="${cfg.name || ''}" data-path="entities.${key}.name"></ha-textfield>`,
         `<ha-icon-picker label="Icon" value="${cfg.icon || ''}" data-path="entities.${key}.icon"></ha-icon-picker>`
-      ],
-      [
-        mainEntityField,
-        `<ha-textfield label="${labelFor('unit','Main unit')}" value="${cfg.unit || ''}" data-path="entities.${key}.unit"></ha-textfield>`
       ]
     ];
+
+    let urlField = '';
+    switch (key) {
+      case 'ac_input':
+        urlField = `<ha-textfield label="AC Input URL (example: 'power-input' for local dashboard)" value="${this._config.ac_in_url || ''}" data-path="ac_in_url"></ha-textfield>`;
+        break;
+      case 'ac_output':
+        urlField = `<ha-textfield label="AC Output URL (example: 'power-output' for local dashboard)" value="${this._config.ac_output_url || ''}" data-path="ac_output_url"></ha-textfield>`;
+        break;
+      case 'inverter_charger':
+        urlField = `<ha-textfield label="Inverter URL (example: 'power-inverter' for local dashboard)" value="${this._config.inverter_url || ''}" data-path="inverter_url"></ha-textfield>`;
+        break;
+      case 'battery':
+        urlField = `<ha-textfield label="Battery URL (example: 'power-battery' for local dashboard)" value="${this._config.battery_url || ''}" data-path="battery_url"></ha-textfield>`;
+        break;
+      case 'dc':
+        urlField = `<ha-textfield label="DC System URL (example: 'power-dc' for local dashboard)" value="${this._config.dc_url || ''}" data-path="dc_url"></ha-textfield>`;
+        break;
+    }
+
+    rows.push([
+      `<div style="grid-column: 1 / -1">${urlField}</div>`,
+      ''
+    ]);
+
+    rows.push([
+      mainEntityField,
+      `<ha-textfield label="${labelFor('unit','Main unit')}" value="${cfg.unit || ''}" data-path="entities.${key}.unit"></ha-textfield>`
+    ]);
 
     rows.push([
       `<ha-textfield label="${labelFor('secondary','Secondary (template ok)')}" value="${cfg.secondary || ''}" data-path="entities.${key}.secondary"></ha-textfield>`,
@@ -238,6 +258,10 @@ class EnhancedPowerFlowCardEditor extends HTMLElement {
       const batteryName = opts.includeBatteryFlowControls.batteryName || 'Battery';
       const dcName = opts.includeBatteryFlowControls.dcName || 'DC System';
       rows.push([
+        `<ha-textfield style="grid-column: span 2;" label="Flow On/Off Binary Sensor (template ok)" placeholder="" value="${cfg.dc_flow_template || ''}" data-path="entities.${key}.dc_flow_template"></ha-textfield>`,
+        ``,
+      ]);      
+      rows.push([
         `<ha-textfield type="color" label="Inverter→Battery positive color" value="${this._flowPathColorInputValue('inverter_battery', 'positive')}" data-path="flow_colors.inverter_battery.positive"></ha-textfield>`,
         `<ha-textfield type="color" label="Inverter→Battery negative color" value="${this._flowPathColorInputValue('inverter_battery', 'negative')}" data-path="flow_colors.inverter_battery.negative"></ha-textfield>`
       ]);
@@ -250,8 +274,8 @@ class EnhancedPowerFlowCardEditor extends HTMLElement {
         `<ha-textfield type="color" label="Inverter→DC negative color" value="${this._flowPathColorInputValue('inverter_dc', 'negative')}" data-path="flow_colors.inverter_dc.negative"></ha-textfield>`
       ]);
       rows.push([
-        `<ha-textfield label="" placeholder="Flow On/Off Binary Sensor" value="${cfg.dc_flow_template || ''}" data-path="entities.${key}.dc_flow_template"></ha-textfield>`,
         `<ha-formfield label="Invert flow to ${dcName}"><ha-switch ${this._config?.entities?.dc?.invert === true ? 'checked' : ''} data-path="entities.dc.invert"></ha-switch></ha-formfield>`,
+        ``
       ]);
     }
 
@@ -281,15 +305,11 @@ class EnhancedPowerFlowCardEditor extends HTMLElement {
     const socUnitField = `<ha-textfield label="State of charge unit" value="${cfg.unit || ''}" data-path="entities.${key}.unit"></ha-textfield>`;
     const mainSelector = `<ha-selector label="" data-selector="entity" data-path="entities.${key}.power_entity"></ha-selector>`;
     const mainUnitField = `<ha-textfield label="Battery power unit" value="${cfg.power_unit || ''}" data-path="entities.${key}.power_unit"></ha-textfield>`;
-    const flowStateSelector = `<ha-selector style="grid-column: span 2;" label="Charging/Discharging State Entity (decides flow direction)" data-selector="entity" data-path="entities.${key}.flow_state_entity"></ha-selector>`;
+    const flowStateSelector = `<ha-textfield style="grid-column: span 2;" label="Charging/Discharging State Entity (template ok)" value="${cfg.flow_state_entity || ''}" data-path="entities.${key}.flow_state_entity"></ha-textfield>`;
     const rows = [
       [
         `<ha-textfield label="Name" value="${cfg.name || ''}" data-path="entities.${key}.name"></ha-textfield>`,
         `<ha-icon-picker label="Icon" value="${cfg.icon || ''}" data-path="entities.${key}.icon"></ha-icon-picker>`
-      ],
-      [
-        flowStateSelector,
-        ''
       ],
       [
         socSelector,
@@ -308,12 +328,20 @@ class EnhancedPowerFlowCardEditor extends HTMLElement {
         `<ha-textfield label="Tertiary unit" value="${cfg.tertiary_unit || ''}" data-path="entities.${key}.tertiary_unit"></ha-textfield>`
       ],
       [
+        `<ha-textfield style="grid-column: span 2;" label="Flow On/Off Binary Sensor (template ok)" value="${cfg.dc_flow_template || ''}" data-path="entities.${key}.dc_flow_template"></ha-textfield>`,
+        ``,
+      ],
+      [
+        flowStateSelector,
+        ''
+      ],
+      [
         `<ha-textfield type="color" label="Battery→DC positive color" value="${this._flowPathColorInputValue('battery_dc', 'positive')}" data-path="flow_colors.battery_dc.positive"></ha-textfield>`,
         `<ha-textfield type="color" label="Battery→DC negative color" value="${this._flowPathColorInputValue('battery_dc', 'negative')}" data-path="flow_colors.battery_dc.negative"></ha-textfield>`
       ],
       [
-        `<ha-textfield label="" placeholder="Flow On/Off Binary Sensor" value="${cfg.dc_flow_template || ''}" data-path="entities.${key}.dc_flow_template"></ha-textfield>`,
         `<ha-formfield label="Invert flow to DC System"><ha-switch ${cfg.invert_to_battery === true ? 'checked' : ''} data-path="entities.${key}.invert_to_battery"></ha-switch></ha-formfield>`,
+        ``,
       ],
       [
         `<ha-formfield label="Always positive"><ha-switch ${pos} data-path="entities.${key}.positive"></ha-switch></ha-formfield>`,
@@ -715,23 +743,34 @@ class EnhancedPowerFlowCard extends HTMLElement {
 
     _attachClickHandlers() {
         setTimeout(() => {
+            const cfg = this.config || {};
+
             const handlers = {
-                'ac-in-node': '/dashboard-melly/power-in',
-                'ac-output-node': '/dashboard-melly/power-out',
-                'inverter-node': '/dashboard-melly/power-inverter',
-                'battery-node': '/dashboard-melly/power-battery',
-                'dc-node': '/dashboard-melly/power-dc'
+                'ac-in-node': cfg.ac_in_url,
+                'ac-output-node': cfg.ac_output_url,
+                'inverter-node': cfg.inverter_url,
+                'battery-node': cfg.battery_url,
+                'dc-node': cfg.dc_url,
             };
 
             Object.entries(handlers).forEach(([nodeId, path]) => {
                 const node = this.shadowRoot.getElementById(nodeId);
-                if (node) {
-                    node.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        window.history.pushState(null, '', path);
-                        window.dispatchEvent(new CustomEvent('location-changed'));
-                    });
+                if (!node) return;
+
+                // if no URL, ensure it is not clickable
+                if (!path || !path.trim()) {
+                    node.style.cursor = 'default';
+                    return;
                 }
+
+                // URL exists, make it clickable
+                node.style.cursor = 'pointer';
+
+                node.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.history.pushState(null, '', path);
+                    window.dispatchEvent(new CustomEvent('location-changed'));
+                });
             });
         }, 0);
     }
@@ -892,18 +931,48 @@ class EnhancedPowerFlowCard extends HTMLElement {
 
     _getBatteryChargeState(config) {
         if (!config?.flow_state_entity || !this._hass) return undefined;
-        const st = this._hass.states[config.flow_state_entity];
-        if (!st) return undefined;
-        const val = parseFloat(st.state);
+
+        const flowStateEntity = config.flow_state_entity.trim();
+        let raw;
+
+        // Check if it's a template
+        if (flowStateEntity.includes('{{') || flowStateEntity.includes('{%')) {
+            raw = this._evaluateTemplate(flowStateEntity, config.entity);
+        } else if (this._looksLikeEntityId(flowStateEntity)) {
+            // It's an entity ID
+            const st = this._hass.states[flowStateEntity];
+            if (!st) return undefined;
+            raw = st.state;
+        } else {
+            // It's a literal value
+            raw = flowStateEntity;
+        }
+
+        if (raw === undefined || raw === null) return undefined;
+        const val = parseFloat(raw);
         if (isNaN(val)) return undefined;
         return val >= 0.5;
     }
 
     _getBatteryFlowStateDisplay(config) {
         if (!config?.flow_state_entity || !this._hass) return '';
-        const st = this._hass.states[config.flow_state_entity];
-        if (!st) return '';
-        const raw = st.state;
+
+        const flowStateEntity = config.flow_state_entity.trim();
+        let raw;
+
+        // Check if it's a template
+        if (flowStateEntity.includes('{{') || flowStateEntity.includes('{%')) {
+            raw = this._evaluateTemplate(flowStateEntity, config.entity);
+        } else if (this._looksLikeEntityId(flowStateEntity)) {
+            // It's an entity ID
+            const st = this._hass.states[flowStateEntity];
+            if (!st) return '';
+            raw = st.state;
+        } else {
+            // It's a literal value
+            raw = flowStateEntity;
+        }
+
         if (raw === undefined || raw === null) return '';
         if (raw === 'on') return 'Charging';
         if (raw === 'off') return 'Discharging';
@@ -1510,8 +1579,8 @@ class EnhancedPowerFlowCard extends HTMLElement {
     if (typeof value === 'number') return value !== 0;
     const str = String(value).trim().toLowerCase();
     if (!str) return undefined;
-    if (['on','true','1','open','enabled','yes','active'].includes(str)) return true;
-    if (['off','false','0','closed','disabled','no','inactive'].includes(str)) return false;
+    if (['on','true','1','open','enabled','yes','active','charging'].includes(str)) return true;
+    if (['off','false','0','closed','disabled','no','inactive','discharging'].includes(str)) return false;
     return undefined;
   }
 
